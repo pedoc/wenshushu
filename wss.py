@@ -403,8 +403,14 @@ if __name__ == "__main__":
             url = sys.argv[2]
             download(url)
     except IndexError:
-        print('请输入正确命令\n',
-              '上传:[python wss.py upload "file.exe"]\n',
-              '下载:[python wss.py download "url"]')
+        is_nuitka = "__compiled__" in globals()
+        if is_nuitka:
+            print('请输入正确命令\n',
+                  '上传:[wss upload "file.exe"]\n',
+                  '下载:[wss download "url"]')
+        else:
+            print('请输入正确命令\n',
+                  '上传:[python wss.py upload "file.exe"]\n',
+                  '下载:[python wss.py download "url"]')
     except Exception as e:
         traceback.print_exc()
