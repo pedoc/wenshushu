@@ -35,11 +35,11 @@ jobs:
     
     - name: Build with Nuitka (Windows)
       if: matrix.os == 'windows-latest'
-      run: python -m nuitka --standalone --output-dir=dist wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist wss.py
     
     - name: Build with Nuitka (Linux)
       if: matrix.os == 'ubuntu-latest'
-      run: python -m nuitka --standalone --output-dir=dist wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist wss.py
     
     - name: Create Release
       id: create_release
