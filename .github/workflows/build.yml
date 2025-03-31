@@ -41,23 +41,10 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=wss --assume-yes-for-downloads wss.py
     
-    - name: Create Release
+    - name: Create Github Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-    
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/wss${{ matrix.os == 'windows-latest' && '.exe' || '' }}
-        asset_name: wss-${{ matrix.os == 'windows-latest' && 'windows' || 'linux' }}-${{ github.ref_name }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}
-        asset_content_type: application/octet-stream 
+        files: ./dist/wss${{ matrix.os == 'windows-latest' && '.exe' || '' }}
