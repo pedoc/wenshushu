@@ -35,11 +35,11 @@ jobs:
     
     - name: Build with Nuitka (Windows)
       if: matrix.os == 'windows-latest'
-      run: python -m nuitka --onefile --standalone --output-dir=dist wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=wss.exe wss.py
     
     - name: Build with Nuitka (Linux)
       if: matrix.os == 'ubuntu-latest'
-      run: python -m nuitka --onefile --standalone --output-dir=dist wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=wss wss.py
     
     - name: Create Release
       id: create_release
@@ -58,6 +58,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/wss.dist/wss${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+        asset_path: ./dist/wss${{ matrix.os == 'windows-latest' && '.exe' || '' }}
         asset_name: wss-${{ matrix.os == 'windows-latest' && 'windows' || 'linux' }}-${{ github.ref_name }}${{ matrix.os == 'windows-latest' && '.exe' || '' }}
         asset_content_type: application/octet-stream 
