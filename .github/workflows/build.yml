@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30  # 设置更长的超时时间
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
