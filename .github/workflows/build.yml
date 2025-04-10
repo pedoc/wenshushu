@@ -46,7 +46,7 @@ jobs:
   build-linux:
     runs-on: ${{ matrix.os }}
     container:
-      image: ubuntu:20.04
+      image: debian:10
     timeout-minutes: 30
     strategy:
       matrix:
