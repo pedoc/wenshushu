@@ -99,10 +99,22 @@ jobs:
     - name: Build with Nuitka (Linux)
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
-    - name: Create Github Release
-      id: create_release
-      uses: pedoc/action-gh-release@v2-custom
+    # - name: Create Github Release
+    #   id: create_release
+    #   uses: softprops/action-gh-release@v2
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     files: ./dist/${{ matrix.output_name }}
+
+    - name: Create Github Release(hack)
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        files: ./dist/${{ matrix.output_name }}
+        INPUT_FILES: ./dist/${{ matrix.output_name }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+      run: |
+        apt install node wget -y
+        node -v
+        wget https://raw.githubusercontent.com/softprops/action-gh-release/refs/tags/v2/dist/index.js
+        files: node index.js
