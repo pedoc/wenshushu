@@ -17,11 +17,11 @@ jobs:
             python-version: '3.10'
             arch: x64
             output_name: wss-windows-x64.exe
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: '3.10'
             arch: x64
             output_name: wss-linux-x64
-          - os: ubuntu-18.04
+          - os: ubuntu-latest
             python-version: '3.10'
             arch: arm64
             output_name: wss-linux-arm64
@@ -46,7 +46,7 @@ jobs:
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
     - name: Build with Nuitka (Linux)
-      if: matrix.os == 'ubuntu-18.04'
+      if: matrix.os == 'ubuntu-latest'
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
     - name: Create Github Release
