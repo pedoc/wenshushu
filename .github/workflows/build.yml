@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            python-version: '3.6'
+            python-version: '3.8'
             arch: x64
             output_name: wss-windows-x64.exe
 
@@ -52,11 +52,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python-version: '3.6'
+            python-version: '3.8'
             arch: x64
             output_name: wss-linux-x64
           - os: ubuntu-24.04-arm #ubuntu-latest-arm
-            python-version: '3.6'
+            python-version: '3.8'
             arch: arm64
             output_name: wss-linux-arm64
 
