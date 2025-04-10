@@ -114,7 +114,7 @@ jobs:
         GITHUB_REF: ${{ github.ref }}
         GITHUB_REPOSITORY: ${{ github.repository }}
       run: |
-        apt install node wget -y
+        apt install nodejs wget -y
         node -v
         wget https://raw.githubusercontent.com/softprops/action-gh-release/refs/tags/v2/dist/index.js
         files: node index.js
