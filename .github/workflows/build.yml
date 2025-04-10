@@ -99,10 +99,17 @@ jobs:
     - name: Build with Nuitka (Linux)
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
+    # - name: Create Github Release
+    #   id: create_release
+    #   uses: softprops/action-gh-release@v2
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     files: ./dist/${{ matrix.output_name }}
+
     - name: Create Github Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
+      uses: docker://antonyurchenko/git-release:v5
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        files: ./dist/${{ matrix.output_name }}
+        args: ./dist/${{ matrix.output_name }}
