@@ -12,12 +12,19 @@ jobs:
     timeout-minutes: 30  # 设置更长的超时时间
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-18.04]
         include:
           - os: windows-latest
             python-version: '3.10'
+            arch: x64
+            output_name: wss-windows-x64.exe
           - os: ubuntu-18.04
             python-version: '3.10'
+            arch: x64
+            output_name: wss-linux-x64
+          - os: ubuntu-18.04
+            python-version: '3.10'
+            arch: arm64
+            output_name: wss-linux-arm64
 
     steps:
     - uses: actions/checkout@v3
@@ -26,6 +33,7 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.arch }}
     
     - name: Install dependencies
       run: |
@@ -35,11 +43,11 @@ jobs:
     
     - name: Build with Nuitka (Windows)
       if: matrix.os == 'windows-latest'
-      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=wss.exe --assume-yes-for-downloads wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
     - name: Build with Nuitka (Linux)
       if: matrix.os == 'ubuntu-18.04'
-      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=wss --assume-yes-for-downloads wss.py
+      run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
     - name: Create Github Release
       id: create_release
@@ -47,4 +55,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        files: ./dist/wss${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+        files: ./dist/${{ matrix.output_name }}
