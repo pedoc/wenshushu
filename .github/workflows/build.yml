@@ -46,7 +46,7 @@ jobs:
   build-linux:
     runs-on: ${{ matrix.os }}
     container:
-      image: ubuntu:18.04
+      image: ubuntu:20.04
     timeout-minutes: 30
     strategy:
       matrix:
@@ -64,31 +64,14 @@ jobs:
     - name: Check Environment
       run: |
         uname -a
-        apt update
-        apt install git -y
 
-    # - uses: actions/checkout@v3
-    #   env:
-    #     ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true  # https://github.com/actions/checkout/issues/1809
+    - uses: actions/checkout@v3
 
-    - name: Checkout manually with auth
-      run: |
-        git config --global advice.detachedHead false
-        git config --global --add safe.directory '*'
-        git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} .
-        git checkout ${{ github.ref }}
-    
-    # - name: Set up Python ${{ matrix.python-version }}
-    #   uses: actions/setup-python@v4
-    #   with:
-    #     python-version: ${{ matrix.python-version }}
-    #     architecture: ${{ matrix.arch }}
-
-    - name: Set up Python manually
-      run: |
-        apt install python3 python3-pip patchelf zlib1g-dev -y
-        mv /usr/bin/python /usr/bin/python.bak || true
-        ln -s /usr/bin/python3 /usr/bin/python
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.arch }}
     
     - name: Install dependencies
       run: |
@@ -99,22 +82,10 @@ jobs:
     - name: Build with Nuitka (Linux)
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
-    # - name: Create Github Release
-    #   id: create_release
-    #   uses: softprops/action-gh-release@v2
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     files: ./dist/${{ matrix.output_name }}
-
-    - name: Create Github Release(hack)
+    - name: Create Github Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        INPUT_FILES: ./dist/${{ matrix.output_name }}
-        GITHUB_REF: ${{ github.ref }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-      run: |
-        apt install nodejs wget -y
-        node -v
-        wget https://raw.githubusercontent.com/softprops/action-gh-release/refs/tags/v2/dist/index.js
-        files: node index.js
+      with:
+        files: ./dist/${{ matrix.output_name }}
