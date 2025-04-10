@@ -1,5 +1,5 @@
 name: Build and Release
-
+ 
 on:
   push:
     tags:
@@ -7,9 +7,9 @@ on:
   workflow_dispatch: # 允许手动触发
 
 jobs:
-  build:
+  build-win:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30  # 设置更长的超时时间
+    timeout-minutes: 30
     strategy:
       matrix:
         include:
@@ -17,14 +17,6 @@ jobs:
             python-version: '3.10'
             arch: x64
             output_name: wss-windows-x64.exe
-          - os: ubuntu-latest
-            python-version: '3.10'
-            arch: x64
-            output_name: wss-linux-x64
-          - os: ubuntu-latest
-            python-version: '3.10'
-            arch: arm64
-            output_name: wss-linux-arm64
 
     steps:
     - uses: actions/checkout@v3
@@ -40,13 +32,71 @@ jobs:
         python -m pip install --upgrade pip
         pip install nuitka
         pip install -r requirements.txt
-    
+
     - name: Build with Nuitka (Windows)
-      if: matrix.os == 'windows-latest'
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
+    - name: Create Github Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: ./dist/${{ matrix.output_name }}
+  build-linux:
+    runs-on: ${{ matrix.os }}
+    container:
+      image: ubuntu:18.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: '3.10'
+            arch: x64
+            output_name: wss-linux-x64
+          - os: ubuntu-24.04-arm #ubuntu-latest-arm
+            python-version: '3.10'
+            arch: arm64
+            output_name: wss-linux-arm64
+
+    steps:
+    - name: Check Environment
+      run: |
+        uname -a
+        apt update
+        apt install git -y
+
+    # - uses: actions/checkout@v3
+    #   env:
+    #     ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true  # https://github.com/actions/checkout/issues/1809
+
+    - name: Checkout manually with auth
+      run: |
+        git config --global advice.detachedHead false
+        git config --global --add safe.directory '*'
+        git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} .
+        git checkout ${{ github.ref }}
+    
+    # - name: Set up Python ${{ matrix.python-version }}
+    #   uses: actions/setup-python@v4
+    #   with:
+    #     python-version: ${{ matrix.python-version }}
+    #     architecture: ${{ matrix.arch }}
+
+    - name: Set up Python manually
+      run: |
+        apt install python3 python3-pip patchelf -y
+        mv /usr/bin/python /usr/bin/python.bak || true
+        ln -s /usr/bin/python3 /usr/bin/python
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install nuitka
+        pip install -r requirements.txt
+    
     - name: Build with Nuitka (Linux)
-      if: matrix.os == 'ubuntu-latest'
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
     
     - name: Create Github Release
