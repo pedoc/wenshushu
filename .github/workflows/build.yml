@@ -12,11 +12,11 @@ jobs:
     timeout-minutes: 30  # 设置更长的超时时间
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest, ubuntu-18.04]
         include:
           - os: windows-latest
             python-version: '3.10'
-          - os: ubuntu-latest
+          - os: ubuntu-18.04
             python-version: '3.10'
 
     steps:
@@ -38,7 +38,7 @@ jobs:
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=wss.exe --assume-yes-for-downloads wss.py
     
     - name: Build with Nuitka (Linux)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'ubuntu-18.04'
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=wss --assume-yes-for-downloads wss.py
     
     - name: Create Github Release
