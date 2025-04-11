@@ -15,10 +15,11 @@ from Cryptodome.Util import Padding
 
 import argparse
 
+_apiBaseUrl = 'https://www.wenshushu.cn'
 
 def login_anonymous(session):
     r = session.post(
-        url='https://www.wenshushu.cn/ap/login/anonymous',
+        url=_apiBaseUrl + '/ap/login/anonymous',
         json={
             "dev_info": "{}"
         }
@@ -31,7 +32,7 @@ def download(client, args):
 
     def get_tid(token):
         r = client.post(
-            url='https://www.wenshushu.cn/ap/task/token',
+            url=_apiBaseUrl + '/ap/task/token',
             json={
                 'token': token
             }
@@ -40,7 +41,7 @@ def download(client, args):
 
     def mgrtask(tid):
         r = client.post(
-            url='https://www.wenshushu.cn/ap/task/mgrtask',
+            url=_apiBaseUrl + '/ap/task/mgrtask',
             json={
                 'tid': tid,
                 'password': ''
@@ -60,7 +61,7 @@ def download(client, args):
     def list_file(tid):
         bid, pid = mgrtask(tid)
         r = client.post(
-            url='https://www.wenshushu.cn/ap/ufile/list',
+            url=_apiBaseUrl + '/ap/ufile/list',
             json={
                 "start": 0,
                 "sort": {
@@ -97,7 +98,7 @@ def download(client, args):
 
     def sign(bid, fid, filename):
         r = client.post(
-            url='https://www.wenshushu.cn/ap/dl/sign',
+            url=_apiBaseUrl + '/ap/dl/sign',
             json={
                 'consumeCode': 0,
                 'type': 1,
@@ -155,10 +156,10 @@ def upload(client, args):
 
     def get_epochtime():
         r = client.get(
-            url='https://www.wenshushu.cn/ag/time',
+            url=_apiBaseUrl + '/ag/time',
             headers={
                 "Prod": "com.wenshushu.web.pc",
-                "Referer": "https://www.wenshushu.cn/"
+                "Referer": _apiBaseUrl
             }
         )
         rsp = r.json()
@@ -181,7 +182,7 @@ def upload(client, args):
 
     def storage():
         r = client.post(
-            url='https://www.wenshushu.cn/ap/user/storage',
+            url=_apiBaseUrl + '/ap/user/storage',
             json={}
         )
         rsp = r.json()
@@ -196,7 +197,7 @@ def upload(client, args):
 
     def userinfo():
         client.post(
-            url='https://www.wenshushu.cn/ap/user/userinfo',
+            url=_apiBaseUrl + '/ap/user/userinfo',
             json={"plat": "pcweb"}
         )
 
@@ -225,13 +226,13 @@ def upload(client, args):
         # POST的内容在服务端会以字串形式接受然后直接拼接X-TOKEN，不会先反序列化JSON字串再拼接
         # 加密函数中的JSON序列化与此处的JSON序列化的字串形式两者必须完全一致，否则校验失败
         r = client.post(
-            url='https://www.wenshushu.cn/ap/task/addsend',
+            url=_apiBaseUrl + '/ap/task/addsend',
             json=req_data,
             headers={
                 "A-code": get_cipherheader(epochtime, client.headers['X-TOKEN'], req_data),
                 "Prod": "com.wenshushu.web.pc",
-                "Referer": "https://www.wenshushu.cn/",
-                "Origin": "https://www.wenshushu.cn",
+                "Referer": _apiBaseUrl,
+                "Origin": _apiBaseUrl,
                 "Req-Time": epochtime,
             }
         )
@@ -247,7 +248,7 @@ def upload(client, args):
 
     def get_up_id(bid: str, ufileid: str, tid: str, file_size: int):
         r = client.post(
-            url="https://www.wenshushu.cn/ap/uploadv2/getupid",
+            url=_apiBaseUrl + "/ap/uploadv2/getupid",
             json={
                 "preid": ufileid,
                 "boxid": bid,
@@ -270,7 +271,7 @@ def upload(client, args):
         if ispart:
             payload["partnu"] = partnu
         r = client.post(
-            url="https://www.wenshushu.cn/ap/uploadv2/psurl",
+            url=_apiBaseUrl + "/ap/uploadv2/psurl",
             json=payload
         )
         rsp = r.json()
@@ -279,7 +280,7 @@ def upload(client, args):
 
     def copysend(boxid, taskid, preid):
         r = client.post(
-            url='https://www.wenshushu.cn/ap/task/copysend',
+            url=_apiBaseUrl + '/ap/task/copysend',
             json={
                 'bid': boxid,
                 'tid': taskid,
@@ -313,7 +314,7 @@ def upload(client, args):
             payload['hash']['cm'] = cm  # 把MD5用SHA1加密
         for _ in range(2):
             r = client.post(
-                url='https://www.wenshushu.cn/ap/uploadv2/fast',
+                url=_apiBaseUrl + '/ap/uploadv2/fast',
                 json=payload
             )
             rsp = r.json()
@@ -335,7 +336,7 @@ def upload(client, args):
     def getprocess(upId: str):
         while True:
             r = client.post(
-                url="https://www.wenshushu.cn/ap/ufile/getprocess",
+                url=_apiBaseUrl + "/ap/ufile/getprocess",
                 json={
                     "processId": upId
                 }
@@ -346,7 +347,7 @@ def upload(client, args):
 
     def complete(fname, upId, tid, boxid, preid):
         client.post(
-            url="https://www.wenshushu.cn/ap/uploadv2/complete",
+            url=_apiBaseUrl + "/ap/uploadv2/complete",
             json={
                 "ispart": ispart,
                 "fname": fname,
