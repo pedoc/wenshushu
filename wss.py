@@ -44,13 +44,13 @@ def download(url):
         )
         rsp = r.json()
         expire = rsp['data']['expire']
-        days, remainder = divmod(int(float(expire)), 3600*24)
+        days, remainder = divmod(int(float(expire)), 3600 * 24)
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
         print(f'文件过期时间:{days}天{hours}时{minutes}分{seconds}秒')
 
         file_size = rsp['data']['file_size']
-        print(f'文件大小:{round(int(file_size)/1024**2,2)}MB')
+        print(f'文件大小:{round(int(file_size) / 1024 ** 2, 2)}MB')
         return rsp['data']['boxid'], rsp['data']['ufileid']  # pid
 
     def list_file(tid):
@@ -88,7 +88,7 @@ def download(url):
             for chunk in r.iter_content(chunk_size=block_size):
                 f.write(chunk)
                 dl_count += len(chunk)
-                print(f'下载进度:{int(dl_count/dl_size*100)}%', end='\r')
+                print(f'下载进度:{int(dl_count / dl_size * 100)}%', end='\r')
             print('下载完成:100%')
 
     def sign(bid, fid, filename):
@@ -117,7 +117,7 @@ def download(url):
 
 
 def upload(filePath):
-    chunk_size = 2097152
+    chunk_size = 2048 * 1024
     file_size = os.path.getsize(filePath)
     ispart = True if file_size > chunk_size else False
 
@@ -161,11 +161,11 @@ def upload(filePath):
     def get_cipherheader(epochtime, token, data):
         # cipherMethod: DES/CBC/PKCS7Padding
         json_dumps = json.dumps(data, ensure_ascii=False)
-        md5_hash_code = hashlib.md5((json_dumps+token).encode()).hexdigest()
+        md5_hash_code = hashlib.md5((json_dumps + token).encode()).hexdigest()
         base58_hash_code = base58.b58encode(md5_hash_code)
         key_iv = (
             # 时间戳逆序取5位并作为时间戳字串索引再次取值，最后拼接"000"
-            "".join([epochtime[int(i)] for i in epochtime[::-1][:5]]) + "000"
+                "".join([epochtime[int(i)] for i in epochtime[::-1][:5]]) + "000"
         ).encode()
         cipher = DES.new(key_iv, DES.MODE_CBC, key_iv)
         cipherText = cipher.encrypt(
@@ -183,9 +183,9 @@ def upload(filePath):
         send_space = int(rsp['data']['send_space'])
         storage_space = rest_space + send_space
         print('当前已用空间:{}GB,剩余空间:{}GB,总空间:{}GB'.format(
-            round(send_space / 1024**3, 2),
-            round(rest_space / 1024**3, 2),
-            round(storage_space / 1024**3, 2)
+            round(send_space / 1024 ** 3, 2),
+            round(rest_space / 1024 ** 3, 2),
+            round(storage_space / 1024 ** 3, 2)
         ))
 
     def userinfo():
@@ -364,12 +364,12 @@ def upload(filePath):
             print('文件正在被分块上传！')
             with ThreadPoolExecutor(max_workers=4) as executor:  # or use os.cpu_count()
                 future_list = []
-                for i in range((file_size + chunk_size - 1)//chunk_size):
-                    ul_size = chunk_size if chunk_size*(i+1) <= file_size \
+                for i in range((file_size + chunk_size - 1) // chunk_size):
+                    ul_size = chunk_size if chunk_size * (i + 1) <= file_size \
                         else file_size % chunk_size
                     future_list.append(executor.submit(
-                        file_put, [fname, upId, ul_size, i+1],
-                        filePath, chunk_size*i, ul_size
+                        file_put, [fname, upId, ul_size, i + 1],
+                        filePath, chunk_size * i, ul_size
                     ))
                 future_length = len(future_list)
                 count = 0
@@ -386,6 +386,7 @@ def upload(filePath):
 
         complete(fname, upId, tid, boxid, preid)
         getprocess(upId)
+
     upload_main()
 
 
