@@ -17,6 +17,13 @@ import argparse
 import tarfile
 import random
 
+import logging
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,  # 设置日志级别
+    format='%(asctime)s - %(levelname)s - %(message)s')  # 设置日志格式
+
 _apiBaseUrl = 'https://www.wenshushu.cn'
 
 
@@ -55,10 +62,10 @@ def download(client, args):
         days, remainder = divmod(int(float(expire)), 3600 * 24)
         hours, remainder = divmod(remainder, 3600)
         minutes, seconds = divmod(remainder, 60)
-        print(f'文件过期时间:{days}天{hours}时{minutes}分{seconds}秒')
+        logging.info(f'文件过期时间:{days}天{hours}时{minutes}分{seconds}秒')
 
         file_size = rsp['data']['file_size']
-        print(f'文件大小:{round(int(file_size) / 1024 ** 2, 2)}MB')
+        logging.info(f'文件大小:{round(int(file_size) / 1024 ** 2, 2)}MB')
         return rsp['data']['boxid'], rsp['data']['ufileid']  # pid
 
     def list_file(tid):
@@ -82,11 +89,11 @@ def download(client, args):
         rsp = r.json()
         filename = rsp['data']['fileList'][0]['fname']
         fid = rsp['data']['fileList'][0]['fid']
-        print(f'文件名:{filename}')
+        logging.info(f'文件名:{filename}')
         sign(bid, fid, filename)
 
     def down_handle(url, filename):
-        print('开始下载!', end='\r')
+        logging.info('开始下载!', end='\r')
         r = client.get(url, stream=True)
         dl_size = int(r.headers.get('Content-Length'))
         block_size = 2097152
@@ -96,8 +103,8 @@ def download(client, args):
             for chunk in r.iter_content(chunk_size=block_size):
                 f.write(chunk)
                 dl_count += len(chunk)
-                print(f'下载进度:{int(dl_count / dl_size * 100)}%', end='\r')
-            print('下载完成:100%')
+                logging.info(f'下载进度:{int(dl_count / dl_size * 100)}%', end='\r')
+            logging.info('下载完成:100%')
 
     def sign(bid, fid, filename):
         r = client.post(
@@ -110,7 +117,7 @@ def download(client, args):
         )
         if r.json()['data']['url'] == "" and \
                 r.json()['data']['ttNeed'] != 0:
-            print("对方的分享流量不足")
+            logging.warning("对方的分享流量不足")
             sys.exit(0)
         url = r.json()['data']['url']
         down_handle(url, filename)
@@ -125,18 +132,19 @@ def download(client, args):
 
 
 def upload(client, args):
-    filePath =''
+    filePath = ''
     need_del_file = False
+
     def make_tar_gz(output_filename, source_dir):
         with tarfile.open(output_filename, "w:gz") as tar:
             tar.add(source_dir, arcname=os.path.basename(source_dir))
 
     if not os.path.exists(args.path):
-        print(f'{args.path} 不存在')
+        logging.error(f'{args.path} 不存在')
         return
     if os.path.isdir(args.path):
         filePath = os.path.basename(args.path) + '.tar.gz'
-        print(f'{args.path} 是一个目录,自动压缩为: {filePath}')
+        logging.warning(f'{args.path} 是一个目录,自动压缩为: {filePath}')
         make_tar_gz(filePath, args.path)
         need_del_file = True
     elif os.path.isfile(args.path):
@@ -208,7 +216,7 @@ def upload(client, args):
         rest_space = int(rsp['data']['rest_space'])
         send_space = int(rsp['data']['send_space'])
         storage_space = rest_space + send_space
-        print('当前已用空间:{}GB,剩余空间:{}GB,总空间:{}GB'.format(
+        logging.info('当前已用空间:{}GB,剩余空间:{}GB,总空间:{}GB'.format(
             round(send_space / 1024 ** 3, 2),
             round(rest_space / 1024 ** 3, 2),
             round(storage_space / 1024 ** 3, 2)
@@ -257,7 +265,7 @@ def upload(client, args):
         )
         rsp = r.json()
         if rsp["code"] == 1021:
-            print(f'操作太快啦！请{rsp["message"]}秒后重试')
+            logging.warning(f'操作太快啦！请{rsp["message"]}秒后重试')
             sys.exit(0)
         data = rsp["data"]
         assert data, "需要滑动验证码"
@@ -307,8 +315,8 @@ def upload(client, args):
             }
         )
         rsp = r.json()
-        print(f"个人管理链接：{rsp['data']['mgr_url']}")
-        print(f"公共链接：{rsp['data']['public_url']}, 取件码：{args.pwd or '' }")
+        logging.info(f"个人管理链接：{rsp['data']['mgr_url']}")
+        logging.info(f"公共链接：{rsp['data']['public_url']}, 取件码：{args.pwd or ''}")
 
     def fast():
         boxid, preid, taskid, upId = addsend()
@@ -345,7 +353,7 @@ def upload(client, args):
                     hash_codes += calc_file_hash("MD5", block)
                 payload['hash']['cm'] = sha1_str(hash_codes)
             elif can_fast and ufile:
-                print(f'文件 {name} 可以被秒传！')
+                logging.info(f'文件 {name} 可以被秒传！')
                 getprocess(upId)
                 copysend(boxid, taskid, preid)
                 sys.exit(0)
@@ -387,7 +395,7 @@ def upload(client, args):
     def upload_main():
         fname, tid, boxid, preid, upId = fast()
         if ispart:
-            print('文件正在被分块上传！')
+            logging.info('文件正在被分块上传！')
             with ThreadPoolExecutor(max_workers=4) as executor:  # or use os.cpu_count()
                 future_list = []
                 for i in range((file_size + chunk_size - 1) // chunk_size):
@@ -402,18 +410,18 @@ def upload(client, args):
                 for _ in concurrent.futures.as_completed(future_list):
                     count += 1
                     sp = count / future_length * 100
-                    print(f'分块进度:{int(sp)}%', end='\r')
+                    logging.info(f'分块进度:{int(sp)}%', end='\r')
                     if sp == 100:
-                        print('上传完成:100%')
+                        logging.info('上传完成:100%')
         else:
-            print('文件被整块上传！')
+            logging.info('文件被整块上传！')
             file_put([fname, upId, file_size], filePath, 0, file_size)
-            print('上传完成:100%')
+            logging.info('上传完成:100%')
 
         # 对于目录上传，上传完成后需要删除临时文件
         if need_del_file:
             os.remove(filePath)
-            print(f'删除临时文件: {filePath}')
+            logging.warning(f'删除临时文件: {filePath}')
 
         complete(fname, upId, tid, boxid, preid)
         getprocess(upId)
@@ -447,25 +455,13 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == 'upload':
-            # print(args)
             if args.pwd:
                 args.pwd = args.pwd[:4]
             elif args.random_pwd:
                 args.pwd = random_pwd()
             upload(s, args)
         elif args.command == 'download':
-            print(args)
             download(s, args)
-    except IndexError:
-        is_nuitka = "__compiled__" in globals()
-        if is_nuitka:
-            print('请输入正确命令\n',
-                  '上传:[wss upload "file.exe"]\n',
-                  '下载:[wss download "url"]')
-        else:
-            print('请输入正确命令\n',
-                  '上传:[python wss.py upload "file.exe"]\n',
-                  '下载:[python wss.py download "url"]')
     except Exception as e:
         traceback.print_exc()
 
