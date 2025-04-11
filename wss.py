@@ -26,7 +26,9 @@ def login_anonymous(session):
     return r.json()['data']['token']
 
 
-def download(client,url):
+def download(client, args):
+    url = args.url
+
     def get_tid(token):
         r = client.post(
             url='https://www.wenshushu.cn/ap/task/token',
@@ -118,7 +120,9 @@ def download(client,url):
     list_file(tid)
 
 
-def upload(client,filePath):
+def upload(client, args):
+    filePath = args.file
+
     chunk_size = 2048 * 1024
     file_size = os.path.getsize(filePath)
     ispart = True if file_size > chunk_size else False
@@ -412,10 +416,11 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == 'upload':
-            print(args.file)
-            upload(s, args.file)
+            print(args)
+            upload(s, args)
         elif args.command == 'download':
-            download(s, args.url)
+            print(args)
+            download(s, args)
     except IndexError:
         is_nuitka = "__compiled__" in globals()
         if is_nuitka:
