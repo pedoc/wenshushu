@@ -13,6 +13,8 @@ import requests
 from Cryptodome.Cipher import DES
 from Cryptodome.Util import Padding
 
+import argparse
+
 
 def login_anonymous(session):
     r = session.post(
@@ -24,9 +26,9 @@ def login_anonymous(session):
     return r.json()['data']['token']
 
 
-def download(url):
+def download(client,url):
     def get_tid(token):
-        r = s.post(
+        r = client.post(
             url='https://www.wenshushu.cn/ap/task/token',
             json={
                 'token': token
@@ -35,7 +37,7 @@ def download(url):
         return r.json()['data']['tid']
 
     def mgrtask(tid):
-        r = s.post(
+        r = client.post(
             url='https://www.wenshushu.cn/ap/task/mgrtask',
             json={
                 'tid': tid,
@@ -55,7 +57,7 @@ def download(url):
 
     def list_file(tid):
         bid, pid = mgrtask(tid)
-        r = s.post(
+        r = client.post(
             url='https://www.wenshushu.cn/ap/ufile/list',
             json={
                 "start": 0,
@@ -79,7 +81,7 @@ def download(url):
 
     def down_handle(url, filename):
         print('开始下载!', end='\r')
-        r = s.get(url, stream=True)
+        r = client.get(url, stream=True)
         dl_size = int(r.headers.get('Content-Length'))
         block_size = 2097152
         dl_count = 0
@@ -92,7 +94,7 @@ def download(url):
             print('下载完成:100%')
 
     def sign(bid, fid, filename):
-        r = s.post(
+        r = client.post(
             url='https://www.wenshushu.cn/ap/dl/sign',
             json={
                 'consumeCode': 0,
@@ -116,7 +118,7 @@ def download(url):
     list_file(tid)
 
 
-def upload(filePath):
+def upload(client,filePath):
     chunk_size = 2048 * 1024
     file_size = os.path.getsize(filePath)
     ispart = True if file_size > chunk_size else False
@@ -148,7 +150,7 @@ def upload(filePath):
         return hash_code
 
     def get_epochtime():
-        r = s.get(
+        r = client.get(
             url='https://www.wenshushu.cn/ag/time',
             headers={
                 "Prod": "com.wenshushu.web.pc",
@@ -174,7 +176,7 @@ def upload(filePath):
         return base64.b64encode(cipherText)
 
     def storage():
-        r = s.post(
+        r = client.post(
             url='https://www.wenshushu.cn/ap/user/storage',
             json={}
         )
@@ -189,7 +191,7 @@ def upload(filePath):
         ))
 
     def userinfo():
-        s.post(
+        client.post(
             url='https://www.wenshushu.cn/ap/user/userinfo',
             json={"plat": "pcweb"}
         )
@@ -218,11 +220,11 @@ def upload(filePath):
         }
         # POST的内容在服务端会以字串形式接受然后直接拼接X-TOKEN，不会先反序列化JSON字串再拼接
         # 加密函数中的JSON序列化与此处的JSON序列化的字串形式两者必须完全一致，否则校验失败
-        r = s.post(
+        r = client.post(
             url='https://www.wenshushu.cn/ap/task/addsend',
             json=req_data,
             headers={
-                "A-code": get_cipherheader(epochtime, s.headers['X-TOKEN'], req_data),
+                "A-code": get_cipherheader(epochtime, client.headers['X-TOKEN'], req_data),
                 "Prod": "com.wenshushu.web.pc",
                 "Referer": "https://www.wenshushu.cn/",
                 "Origin": "https://www.wenshushu.cn",
@@ -240,7 +242,7 @@ def upload(filePath):
         return bid, ufileid, tid, upId
 
     def get_up_id(bid: str, ufileid: str, tid: str, file_size: int):
-        r = s.post(
+        r = client.post(
             url="https://www.wenshushu.cn/ap/uploadv2/getupid",
             json={
                 "preid": ufileid,
@@ -263,7 +265,7 @@ def upload(filePath):
         }
         if ispart:
             payload["partnu"] = partnu
-        r = s.post(
+        r = client.post(
             url="https://www.wenshushu.cn/ap/uploadv2/psurl",
             json=payload
         )
@@ -272,7 +274,7 @@ def upload(filePath):
         return url
 
     def copysend(boxid, taskid, preid):
-        r = s.post(
+        r = client.post(
             url='https://www.wenshushu.cn/ap/task/copysend',
             json={
                 'bid': boxid,
@@ -306,7 +308,7 @@ def upload(filePath):
         if not ispart:
             payload['hash']['cm'] = cm  # 把MD5用SHA1加密
         for _ in range(2):
-            r = s.post(
+            r = client.post(
                 url='https://www.wenshushu.cn/ap/uploadv2/fast',
                 json=payload
             )
@@ -328,7 +330,7 @@ def upload(filePath):
 
     def getprocess(upId: str):
         while True:
-            r = s.post(
+            r = client.post(
                 url="https://www.wenshushu.cn/ap/ufile/getprocess",
                 json={
                     "processId": upId
@@ -339,7 +341,7 @@ def upload(filePath):
             time.sleep(1)
 
     def complete(fname, upId, tid, boxid, preid):
-        s.post(
+        client.post(
             url="https://www.wenshushu.cn/ap/uploadv2/complete",
             json={
                 "ispart": ispart,
@@ -390,19 +392,30 @@ def upload(filePath):
     upload_main()
 
 
-if __name__ == "__main__":
+def main():
     s = requests.Session()
     s.headers['X-TOKEN'] = login_anonymous(s)
     s.headers['User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0"
     s.headers['Accept-Language'] = "en-US, en;q=0.9"  # NOTE: require header, otherwise return {"code":-1, ...}
+
+    parser = argparse.ArgumentParser(description="文叔叔 CLI")
+    subparsers = parser.add_subparsers(dest='command', required=True)
+
+    # upload
+    upload_parser = subparsers.add_parser('upload', help='上传文件')
+    upload_parser.add_argument('file', nargs='?', help='要上传的文件路径')
+
+    # download
+    download_parser = subparsers.add_parser('download', help='下载资源')
+    download_parser.add_argument('--url', required=True, help='下载链接')
+
+    args = parser.parse_args()
     try:
-        command = sys.argv[1]
-        if command.lower() in ['upload', 'u']:
-            file = sys.argv[2]
-            upload(file)
-        elif command.lower() in ['download', 'd']:
-            url = sys.argv[2]
-            download(url)
+        if args.command == 'upload':
+            print(args.file)
+            upload(s, args.file)
+        elif args.command == 'download':
+            download(s, args.url)
     except IndexError:
         is_nuitka = "__compiled__" in globals()
         if is_nuitka:
@@ -415,3 +428,7 @@ if __name__ == "__main__":
                   '下载:[python wss.py download "url"]')
     except Exception as e:
         traceback.print_exc()
+
+
+if __name__ == "__main__":
+    main()
