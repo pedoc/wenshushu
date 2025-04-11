@@ -17,6 +17,7 @@ import argparse
 
 _apiBaseUrl = 'https://www.wenshushu.cn'
 
+
 def login_anonymous(session):
     r = session.post(
         url=_apiBaseUrl + '/ap/login/anonymous',
@@ -214,7 +215,7 @@ def upload(client, args):
             "notPreview": False,
             "downPreCountLimit": 0,
             "trafficStatus": 0,
-            "pwd": "",
+            "pwd": args.pwd,
             "expire": "1",
             "recvs": [
                 "social",
@@ -289,7 +290,7 @@ def upload(client, args):
         )
         rsp = r.json()
         print(f"个人管理链接：{rsp['data']['mgr_url']}")
-        print(f"公共链接：{rsp['data']['public_url']}")
+        print(f"公共链接：{rsp['data']['public_url']}, 取件码：{args.pwd or '' }")
 
     def fast():
         boxid, preid, taskid, upId = addsend()
@@ -326,7 +327,7 @@ def upload(client, args):
                     hash_codes += calc_file_hash("MD5", block)
                 payload['hash']['cm'] = sha1_str(hash_codes)
             elif can_fast and ufile:
-                print(f'文件{name}可以被秒传！')
+                print(f'文件 {name} 可以被秒传！')
                 getprocess(upId)
                 copysend(boxid, taskid, preid)
                 sys.exit(0)
@@ -398,6 +399,11 @@ def upload(client, args):
 
 
 def main():
+    def random_pwd():
+        import random
+        num = random.randint(1000, 9999)
+        return str(num)
+
     s = requests.Session()
     s.headers['X-TOKEN'] = login_anonymous(s)
     s.headers['User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0"
@@ -409,6 +415,8 @@ def main():
     # upload
     upload_parser = subparsers.add_parser('upload', help='上传文件')
     upload_parser.add_argument('file', nargs='?', help='要上传的文件路径')
+    upload_parser.add_argument('--pwd', required=False, help='指定取件码,4位数字')
+    upload_parser.add_argument('--random-pwd', required=False, help='随机生成取件码,4位数字')
 
     # download
     download_parser = subparsers.add_parser('download', help='下载资源')
@@ -417,7 +425,11 @@ def main():
     args = parser.parse_args()
     try:
         if args.command == 'upload':
-            print(args)
+            # print(args)
+            if args.pwd:
+                args.pwd = args.pwd[:4]
+            elif args.random_pwd:
+                args.pwd = random_pwd()
             upload(s, args)
         elif args.command == 'download':
             print(args)
