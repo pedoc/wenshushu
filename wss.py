@@ -14,6 +14,8 @@ from Cryptodome.Cipher import DES
 from Cryptodome.Util import Padding
 
 import argparse
+import tarfile
+import random
 
 _apiBaseUrl = 'https://www.wenshushu.cn'
 
@@ -123,7 +125,23 @@ def download(client, args):
 
 
 def upload(client, args):
-    filePath = args.file
+    filePath =''
+    need_del_file = False
+    def make_tar_gz(output_filename, source_dir):
+        with tarfile.open(output_filename, "w:gz") as tar:
+            tar.add(source_dir, arcname=os.path.basename(source_dir))
+
+    if not os.path.exists(args.path):
+        print(f'{args.path} 不存在')
+        return
+    if os.path.isdir(args.path):
+        filePath = os.path.basename(args.path) + '.tar.gz'
+        print(f'{args.path} 是一个目录,自动压缩为: {filePath}')
+        make_tar_gz(filePath, args.path)
+        need_del_file = True
+    elif os.path.isfile(args.path):
+        filePath = args.path
+        need_del_file = False
 
     chunk_size = 2048 * 1024
     file_size = os.path.getsize(filePath)
@@ -392,6 +410,11 @@ def upload(client, args):
             file_put([fname, upId, file_size], filePath, 0, file_size)
             print('上传完成:100%')
 
+        # 对于目录上传，上传完成后需要删除临时文件
+        if need_del_file:
+            os.remove(filePath)
+            print(f'删除临时文件: {filePath}')
+
         complete(fname, upId, tid, boxid, preid)
         getprocess(upId)
 
@@ -400,7 +423,6 @@ def upload(client, args):
 
 def main():
     def random_pwd():
-        import random
         num = random.randint(1000, 9999)
         return str(num)
 
@@ -414,7 +436,7 @@ def main():
 
     # upload
     upload_parser = subparsers.add_parser('upload', help='上传文件')
-    upload_parser.add_argument('file', nargs='?', help='要上传的文件路径')
+    upload_parser.add_argument('path', nargs='?', help='要上传的路径(文件或目录,如果是目录会自动打包为 tar.gz)')
     upload_parser.add_argument('--pwd', required=False, help='指定取件码,4位数字')
     upload_parser.add_argument('--random-pwd', required=False, help='随机生成取件码,4位数字')
 
