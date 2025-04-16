@@ -95,7 +95,7 @@ def download(client, args):
             sign(bid, fid, filename)
 
     def down_handle(url, filename):
-        logging.info('开始下载!', end='\r')
+        logging.info('开始下载!')
         r = client.get(url, stream=True)
         dl_size = int(r.headers.get('Content-Length'))
         block_size = 2097152
@@ -105,7 +105,7 @@ def download(client, args):
             for chunk in r.iter_content(chunk_size=block_size):
                 f.write(chunk)
                 dl_count += len(chunk)
-                logging.info(f'下载进度:{int(dl_count / dl_size * 100)}%', end='\r')
+                logging.info(f'下载进度:{int(dl_count / dl_size * 100)}%')
             logging.info('下载完成:100%')
 
     def sign(bid, fid, filename):
@@ -412,7 +412,7 @@ def upload(client, args):
                 for _ in concurrent.futures.as_completed(future_list):
                     count += 1
                     sp = count / future_length * 100
-                    logging.info(f'分块进度:{int(sp)}%', end='\r')
+                    logging.info(f'分块进度:{int(sp)}%')
                     if sp == 100:
                         logging.info('上传完成:100%')
         else:
