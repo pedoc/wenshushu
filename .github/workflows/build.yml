@@ -35,7 +35,12 @@ jobs:
 
     - name: Build with Nuitka (Windows)
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
-    
+
+    - name: Checksum
+      run: |
+        echo "Checksum for ${{ matrix.output_name }}:"
+        certutil -hashfile dist/${{ matrix.output_name }} SHA256
+
     - name: Create Github Release
       id: create_release
       uses: softprops/action-gh-release@v2.2.1
@@ -89,7 +94,14 @@ jobs:
     
     - name: Build with Nuitka (Linux)
       run: python -m nuitka --onefile --standalone --output-dir=dist --output-filename=${{ matrix.output_name }} --assume-yes-for-downloads wss.py
-    
+
+    - name: Checksum
+      run: |
+        echo "Checksum for ${{ matrix.output_name }}:"
+        sha256sum dist/${{ matrix.output_name }}
+#        sha1sum dist/${{ matrix.output_name }}
+#        md5sum dist/${{ matrix.output_name }}
+
     - name: Create Github Release
       id: create_release
       uses: softprops/action-gh-release@v2.2.1
