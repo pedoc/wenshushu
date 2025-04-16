@@ -467,7 +467,7 @@ def main():
         elif args.command == 'download':
             download(s, args)
         elif args.command == 'version':
-            print('v2.0.2')
+            print('v2.0.3')
     except Exception as e:
         traceback.print_exc()
 
