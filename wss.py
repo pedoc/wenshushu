@@ -454,6 +454,8 @@ def main():
     download_parser = subparsers.add_parser('download', help='下载资源')
     download_parser.add_argument('--url', required=True, help='下载链接')
 
+    download_parser = subparsers.add_parser('version', help='版本')
+
     args = parser.parse_args()
     try:
         if args.command == 'upload':
@@ -464,6 +466,8 @@ def main():
             upload(s, args)
         elif args.command == 'download':
             download(s, args)
+        elif args.command == 'version':
+            print('v2.0.2')
     except Exception as e:
         traceback.print_exc()
 
