@@ -492,7 +492,6 @@ def main():
         return str(num)
 
     s = requests.Session()
-    patch_session_headers(s)
 
     parser = argparse.ArgumentParser(description="文叔叔 CLI")
     subparsers = parser.add_subparsers(dest='command', required=True)
@@ -528,8 +527,10 @@ def main():
                 args.pwd = args.pwd[:4]
             elif args.random_pwd:
                 args.pwd = random_pwd()
+            patch_session_headers(s)
             upload(s, args)
         elif args.command == 'download':
+            patch_session_headers(s)
             download(s, args)
         elif args.command == 'version':
             print('v2.0.3')
