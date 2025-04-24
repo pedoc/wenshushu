@@ -533,7 +533,7 @@ def main():
             patch_session_headers(s)
             download(s, args)
         elif args.command == 'version':
-            print('v2.0.3')
+            print('v2.0.7')
     except Exception as e:
         traceback.print_exc()
 
