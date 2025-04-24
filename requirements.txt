@@ -5,3 +5,4 @@ idna
 pycryptodomex
 requests
 urllib3
+PySocks

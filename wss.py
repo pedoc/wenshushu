@@ -449,15 +449,27 @@ def main():
     upload_parser.add_argument('path', nargs='?', help='要上传的路径(文件或目录,如果是目录会自动打包为 tar.gz)')
     upload_parser.add_argument('--pwd', required=False, help='指定取件码,4位数字')
     upload_parser.add_argument('--random-pwd', required=False, help='随机生成取件码,4位数字')
+    upload_parser.add_argument('--proxy', help='设置代理(http/https/socks4/socks4a/socks45)，如 http://127.0.0.1:8080')
 
     # download
     download_parser = subparsers.add_parser('download', help='下载资源')
     download_parser.add_argument('--url', required=True, help='下载链接')
+    download_parser.add_argument('--proxy', help='设置代理(http/https/socks4/socks4a/socks45)，如 http://127.0.0.1:8080')
 
     download_parser = subparsers.add_parser('version', help='版本')
 
     args = parser.parse_args()
     try:
+        if args.proxy:
+            proxies = {
+                'http': args.proxy,
+                'https': args.proxy
+            }
+            s.proxies.update(proxies)
+            logging.info(f'使用代理: {args.proxy}')
+        else:
+            s.proxies = {}
+
         if args.command == 'upload':
             if args.pwd:
                 args.pwd = args.pwd[:4]
