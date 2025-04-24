@@ -512,7 +512,7 @@ def main():
 
     args = parser.parse_args()
     try:
-        if args.proxy:
+        if hasattr(args, 'proxy') and args.proxy:
             proxies = {
                 'http': args.proxy,
                 'https': args.proxy
@@ -536,7 +536,6 @@ def main():
             print('v2.0.7')
     except Exception as e:
         traceback.print_exc()
-
 
 if __name__ == "__main__":
     main()
