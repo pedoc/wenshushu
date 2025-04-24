@@ -6,3 +6,4 @@ pycryptodomex
 requests
 urllib3
 PySocks
+fake-useragent

@@ -27,6 +27,30 @@ logging.basicConfig(
 _apiBaseUrl = 'https://www.wenshushu.cn'
 
 
+def patch_session_headers(session):
+    user_agents=[
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0'
+    ]
+    ua=random.choice(user_agents)
+    common_headers = {
+        "Origin": "https://www.wenshushu.cn",
+        "Priority": "u=1, i",
+        "Prod": "com.wenshushu.web.pc",
+        "Referer": "https://www.wenshushu.cn/",
+        "Sec-Ch-Ua": '"Microsoft Edge";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": 'empty',
+        "Sec-Fetch-Mode": 'cors',
+        "Sec-Fetch-Site": 'same-origin',
+        "X-TOKEN": "",
+        "User-Agent": ua,
+        "Accept-Language": "zh-CN, en-um;q=0.9"  # NOTE: require header, otherwise return {"code":-1, ...}
+    }
+    session.headers.update(common_headers)
+    session.headers['X-TOKEN'] = login_anonymous(session)
+
+
 def login_anonymous(session):
     r = session.post(
         url=_apiBaseUrl + '/ap/login/anonymous',
@@ -34,14 +58,24 @@ def login_anonymous(session):
             "dev_info": "{}"
         }
     )
+    api_overseashow(session)
     return r.json()['data']['token']
 
 
-def download(client, args):
+def api_overseashow(session):
+    r = session.post(
+        url=_apiBaseUrl + '/ap/user/overseashow',
+        json={
+            "lang": "zh"
+        }
+    )
+
+
+def download(session, args):
     url = args.url
 
     def get_tid(token):
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/task/token',
             json={
                 'token': token
@@ -50,7 +84,7 @@ def download(client, args):
         return r.json()['data']['tid']
 
     def mgrtask(tid):
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/task/mgrtask',
             json={
                 'tid': tid,
@@ -70,7 +104,7 @@ def download(client, args):
 
     def list_file(tid):
         bid, pid = mgrtask(tid)
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/ufile/list',
             json={
                 "start": 0,
@@ -91,12 +125,12 @@ def download(client, args):
         for i, file_info in enumerate(filelist):
             filename = file_info['fname']
             fid = file_info['fid']
-            print(f'[{i+1}/{len(filelist)}] 文件名:{filename}')
+            print(f'[{i + 1}/{len(filelist)}] 文件名:{filename}')
             sign(bid, fid, filename)
 
     def down_handle(url, filename):
         logging.info('开始下载!')
-        r = client.get(url, stream=True)
+        r = session.get(url, stream=True)
         dl_size = int(r.headers.get('Content-Length'))
         block_size = 2097152
         dl_count = 0
@@ -109,7 +143,7 @@ def download(client, args):
             logging.info('下载完成:100%')
 
     def sign(bid, fid, filename):
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/dl/sign',
             json={
                 'consumeCode': 0,
@@ -133,7 +167,7 @@ def download(client, args):
     list_file(tid)
 
 
-def upload(client, args):
+def upload(session, args):
     filePath = ''
     need_del_file = False
 
@@ -184,12 +218,8 @@ def upload(client, args):
         return hash_code
 
     def get_epochtime():
-        r = client.get(
-            url=_apiBaseUrl + '/ag/time',
-            headers={
-                "Prod": "com.wenshushu.web.pc",
-                "Referer": _apiBaseUrl
-            }
+        r = session.get(
+            url=_apiBaseUrl + '/ag/time'
         )
         rsp = r.json()
         return rsp["data"]["time"]  # epochtime expires in 60s
@@ -210,7 +240,7 @@ def upload(client, args):
         return base64.b64encode(cipherText)
 
     def storage():
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/user/storage',
             json={}
         )
@@ -225,14 +255,40 @@ def upload(client, args):
         ))
 
     def userinfo():
-        client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/user/userinfo',
             json={"plat": "pcweb"}
         )
+        rsp = r.json()
+        return rsp['data']
+
+    def msg():
+        session.post(
+            url=_apiBaseUrl + '/ap/user/msg',
+            json={}
+        )
+
+    def getnotice():
+        session.post(
+            url=_apiBaseUrl + '/ap/opr/getnotice',
+            json={}
+        )
+
+    def get_zip_unzip_process(user_data):
+        session.post(
+            url=_apiBaseUrl + '/ap/ufile/get_zip_unzip_process',
+            json={
+                "uid": user_data['devide_id']
+            }
+        )
 
     def addsend():
-        userinfo()
+        user_data = userinfo()
         storage()
+        # msg()
+        # getnotice()
+        # get_zip_unzip_process(user_data)
+
         epochtime = get_epochtime()
         req_data = {
             "sender": "",
@@ -250,19 +306,18 @@ def upload(client, args):
                 "public"
             ],
             "file_size": file_size,
-            "file_count": 1
+            "file_count": 1,
+            "fileDisplay":0,
+            "task_traffic_limit":""
         }
         # POST的内容在服务端会以字串形式接受然后直接拼接X-TOKEN，不会先反序列化JSON字串再拼接
         # 加密函数中的JSON序列化与此处的JSON序列化的字串形式两者必须完全一致，否则校验失败
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/task/addsend',
             json=req_data,
             headers={
-                "A-code": get_cipherheader(epochtime, client.headers['X-TOKEN'], req_data),
-                "Prod": "com.wenshushu.web.pc",
-                "Referer": _apiBaseUrl,
-                "Origin": _apiBaseUrl,
-                "Req-Time": epochtime,
+                "A-Code": get_cipherheader(epochtime, session.headers['X-TOKEN'], req_data),
+                "Req-Time": epochtime
             }
         )
         rsp = r.json()
@@ -276,7 +331,7 @@ def upload(client, args):
         return bid, ufileid, tid, upId
 
     def get_up_id(bid: str, ufileid: str, tid: str, file_size: int):
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + "/ap/uploadv2/getupid",
             json={
                 "preid": ufileid,
@@ -299,7 +354,7 @@ def upload(client, args):
         }
         if ispart:
             payload["partnu"] = partnu
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + "/ap/uploadv2/psurl",
             json=payload
         )
@@ -308,7 +363,7 @@ def upload(client, args):
         return url
 
     def copysend(boxid, taskid, preid):
-        r = client.post(
+        r = session.post(
             url=_apiBaseUrl + '/ap/task/copysend',
             json={
                 'bid': boxid,
@@ -342,7 +397,7 @@ def upload(client, args):
         if not ispart:
             payload['hash']['cm'] = cm  # 把MD5用SHA1加密
         for _ in range(2):
-            r = client.post(
+            r = session.post(
                 url=_apiBaseUrl + '/ap/uploadv2/fast',
                 json=payload
             )
@@ -364,7 +419,7 @@ def upload(client, args):
 
     def getprocess(upId: str):
         while True:
-            r = client.post(
+            r = session.post(
                 url=_apiBaseUrl + "/ap/ufile/getprocess",
                 json={
                     "processId": upId
@@ -375,7 +430,7 @@ def upload(client, args):
             time.sleep(1)
 
     def complete(fname, upId, tid, boxid, preid):
-        client.post(
+        session.post(
             url=_apiBaseUrl + "/ap/uploadv2/complete",
             json={
                 "ispart": ispart,
@@ -437,9 +492,7 @@ def main():
         return str(num)
 
     s = requests.Session()
-    s.headers['X-TOKEN'] = login_anonymous(s)
-    s.headers['User-Agent'] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:82.0) Gecko/20100101 Firefox/82.0"
-    s.headers['Accept-Language'] = "en-US, en;q=0.9"  # NOTE: require header, otherwise return {"code":-1, ...}
+    patch_session_headers(s)
 
     parser = argparse.ArgumentParser(description="文叔叔 CLI")
     subparsers = parser.add_subparsers(dest='command', required=True)
