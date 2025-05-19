@@ -28,10 +28,10 @@ _apiBaseUrl = 'https://www.wenshushu.cn'
 
 
 def patch_session_headers(session):
-    user_agents=[
+    user_agents = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0'
     ]
-    ua=random.choice(user_agents)
+    ua = random.choice(user_agents)
     common_headers = {
         "Origin": "https://www.wenshushu.cn",
         "Priority": "u=1, i",
@@ -175,13 +175,25 @@ def upload(session, args):
         with tarfile.open(output_filename, "w:gz") as tar:
             tar.add(source_dir, arcname=os.path.basename(source_dir))
 
+    def get_readable_size(file_path):
+        size = os.path.getsize(file_path)  # 获取文件大小（字节）
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} PB"
+
     if not os.path.exists(args.path):
         logging.error(f'{args.path} 不存在')
         return
     if os.path.isdir(args.path):
+        args.path = os.path.normpath(args.path)
         filePath = os.path.basename(args.path) + '.tar.gz'
+        start = time.time()
         logging.warning(f'{args.path} 是一个目录,自动压缩为: {filePath}')
         make_tar_gz(filePath, args.path)
+        end = time.time()
+        logging.info(f"压缩耗时: {end - start:.4f} 秒,大小: {get_readable_size(filePath)}")
         need_del_file = True
     elif os.path.isfile(args.path):
         filePath = args.path
@@ -307,8 +319,8 @@ def upload(session, args):
             ],
             "file_size": file_size,
             "file_count": 1,
-            "fileDisplay":0,
-            "task_traffic_limit":""
+            "fileDisplay": 0,
+            "task_traffic_limit": ""
         }
         # POST的内容在服务端会以字串形式接受然后直接拼接X-TOKEN，不会先反序列化JSON字串再拼接
         # 加密函数中的JSON序列化与此处的JSON序列化的字串形式两者必须完全一致，否则校验失败
@@ -533,9 +545,10 @@ def main():
             patch_session_headers(s)
             download(s, args)
         elif args.command == 'version':
-            print('v2.0.7')
+            print('v2.0.8')
     except Exception as e:
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     main()
